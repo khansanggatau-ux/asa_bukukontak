@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -76,6 +78,15 @@ class _HomePageState extends State<HomePage>
     ),
   ];
 
+  // =====================================================
+  // PENCARIAN REAL-TIME DENGAN STREAM (TUGAS 6)
+  // =====================================================
+
+  // Stream broadcast supaya bisa didengarkan berkali-kali (StreamBuilder
+  // akan rebuild setiap kali build dipanggil ulang oleh Flutter).
+  final StreamController<String> _searchController =
+      StreamController<String>.broadcast();
+
   @override
   void initState() {
     super.initState();
@@ -89,6 +100,7 @@ class _HomePageState extends State<HomePage>
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.close(); // supaya tidak terjadi memory leak
     super.dispose();
   }
 
@@ -116,6 +128,23 @@ class _HomePageState extends State<HomePage>
         builder: (context) => const TentangPage(),
       ),
     );
+  }
+
+  // Filter kontak berdasarkan nama ATAU kategori yang mengandung keyword
+  List<Kontak> _filterContacts(String keyword) {
+    final String lowerKeyword = keyword.toLowerCase();
+
+    if (lowerKeyword.isEmpty) {
+      return contacts;
+    }
+
+    return contacts.where((kontak) {
+      final bool cocokNama =
+          kontak.name.toLowerCase().contains(lowerKeyword);
+      final bool cocokKategori =
+          (kontak.kategori ?? '').toLowerCase().contains(lowerKeyword);
+      return cocokNama || cocokKategori;
+    }).toList();
   }
 
   @override
@@ -259,8 +288,44 @@ class _HomePageState extends State<HomePage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          KontakListView(
-            contacts: contacts,
+          // Tab Kontak: kotak pencarian di atas + daftar kontak
+          // yang difilter secara real-time lewat StreamBuilder
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Cari nama atau kategori...',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (teks) {
+                    _searchController.add(teks);
+                  },
+                ),
+              ),
+              Expanded(
+                child: StreamBuilder<String>(
+                  stream: _searchController.stream,
+                  initialData: '',
+                  builder: (context, snapshot) {
+                    final String keyword = snapshot.data ?? '';
+                    final List<Kontak> hasilFilter =
+                        _filterContacts(keyword);
+
+                    return KontakListView(
+                      contacts: hasilFilter,
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
           FavoritListView(
             favorites: favoriteContacts,
