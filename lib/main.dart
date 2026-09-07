@@ -292,6 +292,12 @@ class KontakListView extends StatelessWidget {
       itemBuilder: (context, index) {
         final contact = contacts[index];
 
+        final String initial =
+            (contact['name'] != null && contact['name']!.isNotEmpty)
+                ? contact['name']![0].toUpperCase()
+                : '?';
+
+
         return Card(
           elevation: 2,
           margin: const EdgeInsets.only(bottom: 12),
@@ -301,6 +307,7 @@ class KontakListView extends StatelessWidget {
             leading: Container(
               width: 55,
               height: 55,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [
@@ -310,9 +317,13 @@ class KontakListView extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
-                Icons.person,
-                color: Colors.white,
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
