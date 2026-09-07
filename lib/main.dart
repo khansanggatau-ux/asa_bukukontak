@@ -442,7 +442,7 @@ class FavoritListView extends StatelessWidget {
 }
 
 // =====================================================
-// HALAMAN TAMBAH KONTAK
+// HALAMAN TAMBAH KONTAK (TUGAS 5 - FORM & VALIDASI)
 // =====================================================
 
 class TambahKontakPage extends StatefulWidget {
@@ -455,6 +455,9 @@ class TambahKontakPage extends StatefulWidget {
 
 class _TambahKontakPageState
     extends State<TambahKontakPage> {
+  // Key untuk mengakses dan memvalidasi Form
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   final TextEditingController nameController =
       TextEditingController();
 
@@ -464,7 +467,6 @@ class _TambahKontakPageState
   final TextEditingController phoneController =
       TextEditingController();
 
-  // Controller baru untuk kategori (TUGAS 4)
   final TextEditingController kategoriController =
       TextEditingController();
 
@@ -478,16 +480,13 @@ class _TambahKontakPageState
   }
 
   void _simpanKontak() {
-    if (nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nama lengkap wajib diisi'),
-        ),
-      );
+    // Validasi seluruh field di dalam Form terlebih dahulu.
+    // Kontak hanya disimpan kalau semua validator lolos (true).
+    final bool isValid = _formKey.currentState!.validate();
+    if (!isValid) {
       return;
     }
 
-    // Kalau kategori dikosongkan, simpan sebagai null
     final String kategoriInput = kategoriController.text.trim();
     final String? kategoriValue =
         kategoriInput.isEmpty ? null : kategoriInput;
@@ -536,86 +535,124 @@ class _TambahKontakPageState
               maxWidth: 600,
             ),
 
-            child: Column(
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama Lengkap',
-                    prefixIcon: Icon(
-                      Icons.person_outline,
+            // Seluruh isi form dibungkus widget Form
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // Nama wajib diisi
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama Lengkap',
+                      prefixIcon: Icon(
+                        Icons.person_outline,
+                      ),
+                      border: OutlineInputBorder(),
                     ),
-                    border: OutlineInputBorder(),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Nama lengkap wajib diisi';
+                      }
+                      return null;
+                    },
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                TextField(
-                  controller: emailController,
-                  keyboardType:
-                      TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(
-                      Icons.email_outlined,
+                  // Email wajib diisi dan harus mengandung '@'
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType:
+                        TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(
+                        Icons.email_outlined,
+                      ),
+                      border: OutlineInputBorder(),
                     ),
-                    border: OutlineInputBorder(),
+                    validator: (value) {
+                      final String input = value?.trim() ?? '';
+                      if (input.isEmpty) {
+                        return 'Email wajib diisi';
+                      }
+                      if (!input.contains('@')) {
+                        return 'Email harus mengandung karakter @';
+                      }
+                      return null;
+                    },
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Nomor Handphone',
-                    prefixIcon: Icon(
-                      Icons.phone_outlined,
+                  // No Handphone: hanya angka, minimal 10 digit
+                  TextFormField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Nomor Handphone',
+                      prefixIcon: Icon(
+                        Icons.phone_outlined,
+                      ),
+                      border: OutlineInputBorder(),
                     ),
-                    border: OutlineInputBorder(),
+                    validator: (value) {
+                      final String input = value?.trim() ?? '';
+                      if (input.isEmpty) {
+                        return 'Nomor handphone wajib diisi';
+                      }
+                      final bool hanyaAngka =
+                          RegExp(r'^[0-9]+$').hasMatch(input);
+                      if (!hanyaAngka) {
+                        return 'Nomor handphone hanya boleh angka';
+                      }
+                      if (input.length < 10) {
+                        return 'Nomor handphone minimal 10 digit';
+                      }
+                      return null;
+                    },
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Input kategori (opsional, boleh dikosongkan)
-                TextField(
-                  controller: kategoriController,
-                  decoration: const InputDecoration(
-                    labelText: 'Kategori (opsional)',
-                    hintText: 'Keluarga / Teman / Kerja',
-                    prefixIcon: Icon(
-                      Icons.label_outline,
-                    ),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-
-                  child: ElevatedButton.icon(
-                    onPressed: _simpanKontak,
-
-                    icon: const Icon(Icons.save),
-
-                    label: const Text(
-                      'Simpan Kontak',
-                    ),
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFF6547DD),
-                      foregroundColor: Colors.white,
+                  // Kategori tetap opsional, tanpa validator (Tugas 4)
+                  TextFormField(
+                    controller: kategoriController,
+                    decoration: const InputDecoration(
+                      labelText: 'Kategori (opsional)',
+                      hintText: 'Keluarga / Teman / Kerja',
+                      prefixIcon: Icon(
+                        Icons.label_outline,
+                      ),
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+
+                    child: ElevatedButton.icon(
+                      onPressed: _simpanKontak,
+
+                      icon: const Icon(Icons.save),
+
+                      label: const Text(
+                        'Simpan Kontak',
+                      ),
+
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            const Color(0xFF6547DD),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
