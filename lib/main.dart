@@ -12,6 +12,26 @@ void main() {
   });
 }
 
+// =====================================================
+// MODEL DATA KONTAK (TUGAS 4 - NULL SAFETY)
+// =====================================================
+
+class Kontak {
+  final String name;
+  final String email;
+  final String phone;
+
+  // Tidak semua kontak wajib punya kategori, jadi nullable (String?)
+  final String? kategori;
+
+  Kontak({
+    required this.name,
+    required this.email,
+    required this.phone,
+    this.kategori, // opsional, boleh tidak diisi
+  });
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -44,15 +64,16 @@ class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<Map<String, String>> contacts = [];
+  final List<Kontak> contacts = [];
 
   // DATA FAVORIT UNTUK TUGAS 3
-  final List<Map<String, String>> favoriteContacts = [
-    {
-      'name': 'Venska Fellicia Pertiwi',
-      'email': 'venskafalensia@gmail.com',
-      'phone': '08122557794',
-    },
+  final List<Kontak> favoriteContacts = [
+    Kontak(
+      name: 'Venska Fellicia Pertiwi',
+      email: 'venskafalensia@gmail.com',
+      phone: '08122557794',
+      kategori: 'Keluarga',
+    ),
   ];
 
   @override
@@ -72,7 +93,7 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _bukaTambahKontak() async {
-    final result = await Navigator.push<Map<String, String>>(
+    final result = await Navigator.push<Kontak>(
       context,
       MaterialPageRoute(
         builder: (context) => const TambahKontakPage(),
@@ -265,7 +286,7 @@ class _HomePageState extends State<HomePage>
 // =====================================================
 
 class KontakListView extends StatelessWidget {
-  final List<Map<String, String>> contacts;
+  final List<Kontak> contacts;
 
   const KontakListView({
     super.key,
@@ -293,10 +314,7 @@ class KontakListView extends StatelessWidget {
         final contact = contacts[index];
 
         final String initial =
-            (contact['name'] != null && contact['name']!.isNotEmpty)
-                ? contact['name']![0].toUpperCase()
-                : '?';
-
+            contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?';
 
         return Card(
           elevation: 2,
@@ -328,15 +346,18 @@ class KontakListView extends StatelessWidget {
             ),
 
             title: Text(
-              contact['name'] ?? '',
+              contact.name,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
               ),
             ),
 
+            // Null-aware operator (??): tampilkan 'Tanpa kategori'
+            // kalau contact.kategori bernilai null
             subtitle: Text(
-              'Email: ${contact['email'] ?? ''}\n'
-              'HP: ${contact['phone'] ?? ''}',
+              'Email: ${contact.email}\n'
+              'HP: ${contact.phone}\n'
+              'Kategori: ${contact.kategori ?? 'Tanpa kategori'}',
             ),
           ),
         );
@@ -350,7 +371,7 @@ class KontakListView extends StatelessWidget {
 // =====================================================
 
 class FavoritListView extends StatelessWidget {
-  final List<Map<String, String>> favorites;
+  final List<Kontak> favorites;
 
   const FavoritListView({
     super.key,
@@ -402,15 +423,16 @@ class FavoritListView extends StatelessWidget {
             ),
 
             title: Text(
-              contact['name'] ?? '',
+              contact.name,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
               ),
             ),
 
             subtitle: Text(
-              'Email: ${contact['email'] ?? ''}\n'
-              'HP: ${contact['phone'] ?? ''}',
+              'Email: ${contact.email}\n'
+              'HP: ${contact.phone}\n'
+              'Kategori: ${contact.kategori ?? 'Tanpa kategori'}',
             ),
           ),
         );
@@ -442,11 +464,16 @@ class _TambahKontakPageState
   final TextEditingController phoneController =
       TextEditingController();
 
+  // Controller baru untuk kategori (TUGAS 4)
+  final TextEditingController kategoriController =
+      TextEditingController();
+
   @override
   void dispose() {
     nameController.dispose();
     emailController.dispose();
     phoneController.dispose();
+    kategoriController.dispose();
     super.dispose();
   }
 
@@ -460,11 +487,17 @@ class _TambahKontakPageState
       return;
     }
 
-    final Map<String, String> newContact = {
-      'name': nameController.text.trim(),
-      'email': emailController.text.trim(),
-      'phone': phoneController.text.trim(),
-    };
+    // Kalau kategori dikosongkan, simpan sebagai null
+    final String kategoriInput = kategoriController.text.trim();
+    final String? kategoriValue =
+        kategoriInput.isEmpty ? null : kategoriInput;
+
+    final Kontak newContact = Kontak(
+      name: nameController.text.trim(),
+      email: emailController.text.trim(),
+      phone: phoneController.text.trim(),
+      kategori: kategoriValue,
+    );
 
     Navigator.pop(context, newContact);
   }
@@ -540,6 +573,21 @@ class _TambahKontakPageState
                     labelText: 'Nomor Handphone',
                     prefixIcon: Icon(
                       Icons.phone_outlined,
+                    ),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Input kategori (opsional, boleh dikosongkan)
+                TextField(
+                  controller: kategoriController,
+                  decoration: const InputDecoration(
+                    labelText: 'Kategori (opsional)',
+                    hintText: 'Keluarga / Teman / Kerja',
+                    prefixIcon: Icon(
+                      Icons.label_outline,
                     ),
                     border: OutlineInputBorder(),
                   ),
